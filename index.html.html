@@ -1,0 +1,528 @@
+
+import React, { useState } from 'react';
+import { BookOpen, Video, Brain, ChevronDown, ChevronUp, User, Calendar, GraduationCap, MessageSquare, Send, Calculator, X, Menu, Trash2, Edit2, Settings } from 'lucide-react';
+
+const EducationPlatform = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [studentCode, setStudentCode] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [selectedTerm, setSelectedTerm] = useState('الترم الأول');
+  const [selectedLesson, setSelectedLesson] = useState(null);
+  const [expandedUnit, setExpandedUnit] = useState(null);
+  const [showNumi, setShowNumi] = useState(false);
+  const [messages, setMessages] = useState([
+    { role: 'assistant', content: 'مرحباً، أنا Numi 🧮 مساعدك في الرياضيات. اسألني أي سؤال!' }
+  ]);
+  const [input, setInput] = useState('');
+  const [showMathKeyboard, setShowMathKeyboard] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showApiSettings, setShowApiSettings] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+
+  const studentData = {
+    name: 'أحمد محمد',
+    grade: 'الصف الثالث الثانوي',
+    studentId: '2024001',
+    subject: 'الرياضيات',
+    avatar: '👨‍🎓'
+  };
+
+  const mathSymbols = [
+    { symbol: '²', label: 'تربيع' },
+    { symbol: '³', label: 'تكعيب' },
+    { symbol: '√', label: 'جذر' },
+    { symbol: 'π', label: 'باي' },
+    { symbol: '∞', label: 'لانهاية' },
+    { symbol: '÷', label: 'قسمة' },
+    { symbol: '×', label: 'ضرب' },
+    { symbol: '±', label: 'زائد/ناقص' }
+  ];
+
+  const curriculum = {
+    'الترم الأول': [
+      {
+        id: 1,
+        name: 'الوحدة الأولى: الجبر',
+        lessons: [
+          {
+            id: 101,
+            name: 'الدرس الأول: المصفوفات',
+            videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+            mindMapImage: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800&h=600&fit=crop',
+            games: [
+              { title: 'لعبة جمع المصفوفات', url: 'https://example.com/game1', description: 'تدرب على جمع المصفوفات بطريقة ممتعة' },
+              { title: 'تحدي ضرب المصفوفات', url: 'https://example.com/game2', description: 'اختبر مهاراتك في ضرب المصفوفات' },
+              { title: 'لغز المصفوفات', url: 'https://example.com/game3', description: 'حل الألغاز الرياضية المتعلقة بالمصفوفات' }
+            ]
+          }
+        ]
+      }
+    ],
+    'الترم الثاني': [
+      {
+        id: 2,
+        name: 'الوحدة الثانية: التفاضل',
+        lessons: [
+          {
+            id: 201,
+            name: 'الدرس الأول: النهايات',
+            videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+            mindMapImage: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&h=600&fit=crop',
+            games: [
+              { title: 'لعبة حساب النهايات', url: 'https://example.com/game4', description: 'احسب النهايات بسرعة ودقة' },
+              { title: 'تحدي النهايات اللانهائية', url: 'https://example.com/game5', description: 'اختبر فهمك للنهايات عند اللانهاية' }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setLoginError('');
+
+    // التحقق من صحة البيانات
+    if (!phoneNumber || !studentCode) {
+      setLoginError('من فضلك أدخل رقم الهاتف وكود الطالب');
+      return;
+    }
+
+    if (phoneNumber.length !== 11) {
+      setLoginError('رقم الهاتف يجب أن يكون 11 رقم');
+      return;
+    }
+
+    // هنا يمكنك إضافة التحقق من قاعدة البيانات
+    // مثال بسيط للتحقق
+    if (studentCode === '2024001' || studentCode === '12345') {
+      setIsLoggedIn(true);
+      // يمكنك تحديث بيانات الطالب هنا بناءً على الكود
+    } else {
+      setLoginError('كود الطالب غير صحيح');
+    }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    const userMessage = { role: 'user', content: input };
+    setMessages([...messages, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      if (apiKey) {
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 1024,
+            messages: [...messages, userMessage].map(msg => ({
+              role: msg.role === 'assistant' ? 'assistant' : 'user',
+              content: msg.content
+            })),
+            system: "أنت Numi، مساعد رياضيات للطلاب"
+          })
+        });
+        const data = await response.json();
+        setMessages(prev => [...prev, { role: 'assistant', content: data.content[0].text }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: 'أضف API Key من الإعدادات' }]);
+      }
+    } catch (error) {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'حدث خطأ' }]);
+    }
+    setIsLoading(false);
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-pink-600 flex items-center justify-center p-4" dir="rtl">
+        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
+          <div className="text-center mb-8">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <GraduationCap className="text-white" size={40} />
+            </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+              مرحباً بك في Numi
+            </h1>
+            <p className="text-gray-600">منصة التعليم الذكية</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <label className="block text-gray-700 font-semibold mb-2 text-right">
+                رقم الهاتف
+              </label>
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="01xxxxxxxxx"
+                maxLength="11"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-400 text-right"
+                dir="rtl"
+              />
+            </div>
+
+            <div>
+              <label className="block text-gray-700 font-semibold mb-2 text-right">
+                كود الطالب
+              </label>
+              <input
+                type="text"
+                value={studentCode}
+                onChange={(e) => setStudentCode(e.target.value)}
+                placeholder="أدخل كود الطالب"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-400 text-right"
+                dir="rtl"
+              />
+            </div>
+
+            {loginError && (
+              <div className="bg-red-50 border-2 border-red-200 rounded-xl p-3">
+                <p className="text-red-600 text-sm text-right">⚠️ {loginError}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              تسجيل الدخول
+            </button>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4">
+              <p className="text-sm text-blue-800 text-right">
+                💡 <strong>للتجربة:</strong> استخدم كود الطالب: <span className="font-mono">2024001</span> أو <span className="font-mono">12345</span>
+              </p>
+            </div>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-gray-500 text-sm">
+              هل نسيت كود الطالب؟{' '}
+              <button className="text-purple-600 font-semibold hover:underline">
+                تواصل معنا
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showNumi) {
+    return (
+      <div className="fixed inset-0 z-50 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl transform transition-transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="flex flex-col h-full">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-white font-bold">القائمة</h2>
+                <button onClick={() => setSidebarOpen(false)} className="text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="bg-white/20 rounded-xl p-3">
+                <div className="flex items-center gap-3">
+                  <div className="text-4xl">{studentData.avatar}</div>
+                  <div className="text-white">
+                    <h3 className="font-bold">{studentData.name}</h3>
+                    <p className="text-sm">{studentData.grade}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 p-4">
+              <button onClick={() => setShowApiSettings(true)} className="w-full bg-gray-200 py-2 rounded-lg">
+                إعدادات API
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSidebarOpen(false)} />}
+
+        {showApiSettings && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">إعدادات API</h2>
+                <button onClick={() => setShowApiSettings(false)}>
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-ant-..."
+                className="w-full px-4 py-3 border-2 rounded-xl mb-4"
+              />
+              <button
+                onClick={() => setShowApiSettings(false)}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl"
+              >
+                حفظ
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 flex flex-col">
+          <div className="bg-white shadow-md px-6 py-4">
+            <div className="flex items-center justify-between max-w-4xl mx-auto">
+              <div className="flex gap-3">
+                <button onClick={() => setSidebarOpen(true)} className="text-purple-600 p-2">
+                  <Menu className="w-6 h-6" />
+                </button>
+                <button onClick={() => setShowNumi(false)} className="text-red-600 p-2">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Numi</h1>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 py-6">
+            <div className="max-w-4xl mx-auto space-y-4">
+              {messages.map((msg, idx) => (
+                <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-xl px-5 py-3 rounded-2xl ${msg.role === 'user' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' : 'bg-white border-2 border-purple-200'}`}>
+                    <p className="text-right">{msg.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {showMathKeyboard && (
+            <div className="bg-white border-t-2 px-4 py-3">
+              <div className="max-w-4xl mx-auto">
+                <div className="grid grid-cols-8 gap-2">
+                  {mathSymbols.map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setInput(input + item.symbol)}
+                      className="bg-purple-100 rounded-lg px-3 py-2 text-lg font-bold"
+                    >
+                      {item.symbol}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white border-t-2 px-4 py-4">
+            <div className="max-w-4xl mx-auto flex gap-2">
+              <button
+                onClick={() => setShowMathKeyboard(!showMathKeyboard)}
+                className="p-3 bg-purple-100 rounded-xl"
+              >
+                <Calculator className="w-5 h-5" />
+              </button>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="اكتب سؤالك..."
+                className="flex-1 px-4 py-3 border-2 rounded-xl"
+                dir="rtl"
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-3 rounded-xl"
+              >
+                {isLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100" dir="rtl">
+      <button
+        onClick={() => setShowNumi(true)}
+        className="fixed bottom-6 left-6 z-40 bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-full shadow-2xl flex items-center gap-2"
+      >
+        <MessageSquare className="w-6 h-6" />
+        <span className="font-bold">Numi</span>
+      </button>
+
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl font-bold mb-4 flex items-center gap-3">
+            <GraduationCap size={36} />
+            Numi
+          </h1>
+          <div className="bg-white/10 rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex items-center gap-2">
+              <User size={20} />
+              <div>
+                <p className="text-xs opacity-80">اسم الطالب</p>
+                <p className="font-semibold">{studentData.name}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <BookOpen size={20} />
+              <div>
+                <p className="text-xs opacity-80">الصف الدراسي</p>
+                <p className="font-semibold">{studentData.grade}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar size={20} />
+              <div>
+                <p className="text-xs opacity-80">رقم الطالب</p>
+                <p className="font-semibold">{studentData.studentId}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <BookOpen size={20} />
+              <div>
+                <p className="text-xs opacity-80">المادة</p>
+                <p className="font-semibold">{studentData.subject}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto p-6">
+        {!selectedLesson ? (
+          <>
+            <div className="mb-6">
+              <label className="block text-gray-700 font-semibold mb-2">اختر الترم الدراسي:</label>
+              <div className="flex gap-3">
+                {['الترم الأول', 'الترم الثاني'].map((term) => (
+                  <button
+                    key={term}
+                    onClick={() => setSelectedTerm(term)}
+                    className={`px-6 py-3 rounded-lg font-semibold ${selectedTerm === term ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                  >
+                    {term}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {curriculum[selectedTerm].map((unit) => (
+                <div key={unit.id} className="bg-white rounded-lg shadow-md">
+                  <button
+                    onClick={() => setExpandedUnit(expandedUnit === unit.id ? null : unit.id)}
+                    className="w-full p-4 flex items-center justify-between bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-t-lg"
+                  >
+                    <h2 className="text-xl font-bold flex items-center gap-2">
+                      <BookOpen size={24} />
+                      {unit.name}
+                    </h2>
+                    {expandedUnit === unit.id ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+                  </button>
+                  {expandedUnit === unit.id && (
+                    <div className="p-4 space-y-2">
+                      {unit.lessons.map((lesson) => (
+                        <button
+                          key={lesson.id}
+                          onClick={() => setSelectedLesson(lesson)}
+                          className="w-full p-4 bg-gray-50 hover:bg-blue-50 rounded-lg text-right"
+                        >
+                          <p className="font-semibold">{lesson.name}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="space-y-6">
+            <button
+              onClick={() => setSelectedLesson(null)}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg"
+            >
+              العودة
+            </button>
+
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-2xl font-bold mb-6">{selectedLesson.name}</h2>
+
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <Video className="text-red-600" size={24} />
+                  <h3 className="text-xl font-semibold">شرح الدرس</h3>
+                </div>
+                <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={selectedLesson.videoUrl}
+                    title="شرح الدرس"
+                    frameBorder="0"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Brain className="text-purple-600" size={24} />
+                  <h3 className="text-xl font-semibold">الخريطة الذهنية</h3>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-blue-50 p-6 rounded-lg">
+                  <img 
+                    src={selectedLesson.mindMapImage} 
+                    alt="خريطة ذهنية للدرس"
+                    className="w-full rounded-lg shadow-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <GraduationCap className="text-green-600" size={24} />
+                  <h3 className="text-xl font-semibold">ألعاب تعليمية</h3>
+                </div>
+                <div className="grid md:grid-cols-3 gap-4">
+                  {selectedLesson.games.map((game, idx) => (
+                    <a
+                      key={idx}
+                      href={game.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-gradient-to-br from-green-50 to-blue-50 p-5 rounded-lg shadow-md hover:shadow-xl transition-all border-2 border-green-200 hover:border-green-400 group"
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="bg-green-500 text-white p-2 rounded-lg group-hover:scale-110 transition-transform">
+                          <GraduationCap size={20} />
+                        </div>
+                        <h4 className="font-bold text-lg text-gray-800">{game.title}</h4>
+                      </div>
+                      <p className="text-gray-600 text-sm">{game.description}</p>
+                      <div className="mt-3 text-green-600 font-semibold text-sm">
+                        ← العب الآن
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default EducationPlatform;
